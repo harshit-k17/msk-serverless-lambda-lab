@@ -29,6 +29,7 @@ jobs:
       run: |
         cd lambda
         pip install -r requirements.txt -t .
+        pip install git+https://github.com/aws/aws-msk-iam-auth.git#subdirectory=python -t .
         zip -r ../lambda.zip .
     
     - name: Configure AWS

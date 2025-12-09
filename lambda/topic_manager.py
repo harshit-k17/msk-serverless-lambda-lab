@@ -4,7 +4,8 @@ import yaml
 import boto3
 
 from confluent_kafka.admin import AdminClient, NewTopic, ConfigResource
-from msk_iam_auth import MSKAuthTokenProvider
+from aws_msk_iam_auth import MSKAuthTokenProvider
+
 
 
 S3_BUCKET = os.environ["TOPIC_CONFIG_BUCKET"]

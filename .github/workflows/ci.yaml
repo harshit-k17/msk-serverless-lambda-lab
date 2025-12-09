@@ -39,11 +39,11 @@ jobs:
 
     - name: Upload Lambda ZIP
       run: |
-        aws s3 cp lambda.zip s3://${{ secrets.ARTIFACTS_BUCKET }}/lambda.zip
+        aws s3 cp lambda.zip s3://${{ secrets.ARTIFACT_BUCKET }}/lambda.zip
 
     - name: Upload topics.yaml
       run: |
-        aws s3 cp config/topics.yaml s3://${{ secrets.ARTIFACTS_BUCKET }}/topics.yaml
+        aws s3 cp config/topics.yaml s3://${{ secrets.ARTIFACT_BUCKET }}/topics.yaml
 
     - name: Deploy CloudFormation
       run: |
@@ -52,9 +52,9 @@ jobs:
           --template-file infra/stack.yaml \
           --capabilities CAPABILITY_NAMED_IAM \
           --parameter-overrides \
-            LambdaCodeS3Bucket=${{ secrets.ARTIFACTS_BUCKET }} \
+            LambdaCodeS3Bucket=${{ secrets.ARTIFACT_BUCKET }} \
             LambdaCodeS3Key=lambda.zip \
-            TopicConfigBucket=${{ secrets.ARTIFACTS_BUCKET }} \
+            TopicConfigBucket=${{ secrets.ARTIFACT_BUCKET }} \
             TopicConfigKey=topics.yaml \
             BootstrapServers='${{ secrets.MSK_BOOTSTRAP_SERVERS }}' \
             ClusterArn='${{ secrets.MSK_CLUSTER_ARN }}' \

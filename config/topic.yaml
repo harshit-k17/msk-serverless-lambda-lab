@@ -1,19 +1,17 @@
-cluster_arn: "arn:aws:kafka:us-east-1:123456789012:cluster/your-msk-cluster-name/xxxxxxxxxxxxxx"
+bootstrap_servers: "boot-jk60kv0x.c2.kafka-serverless.us-east-1.amazonaws.com:9098"
 
 topics:
-  - name: orders-topic
-    state: present          # present -> create/update, absent -> delete (optional)
-    num_partitions: 3
-    replication_factor: 3   # for provisioned; for serverless keep for readability
-    config:
-      cleanup.policy: "delete"
-      retention.ms: 604800000       # 7 days
-      min.insync.replicas: 2
-
-  - name: payments-topic
-    state: present
-    num_partitions: 6
+  - name: demo-orders
+    partitions: 3
     replication_factor: 3
     config:
-      cleanup.policy: "compact"
-      min.cleanable.dirty.ratio: 0.5
+      cleanup.policy: compact
+      min.insync.replicas: "2"
+      retention.ms: "604800000"  # 7 days
+
+  - name: demo-payments
+    partitions: 2
+    replication_factor: 3
+    config:
+      cleanup.policy: delete
+      retention.ms: "259200000"  # 3 days

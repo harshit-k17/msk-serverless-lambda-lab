@@ -1,0 +1,68 @@
+name: Deploy MSK Topic Automation
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "lambda/**"
+      - "config/**"
+      - "infra/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Package Lambda
+      run: |
+        cd lambda
+        pip install -r requirements.txt -t .
+        zip -r ../lambda.zip .
+    
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Upload Lambda ZIP
+      run: |
+        aws s3 cp lambda.zip s3://${{ secrets.ARTIFACTS_BUCKET }}/lambda.zip
+
+    - name: Upload topics.yaml
+      run: |
+        aws s3 cp config/topics.yaml s3://${{ secrets.ARTIFACTS_BUCKET }}/topics.yaml
+
+    - name: Deploy CloudFormation
+      run: |
+        aws cloudformation deploy \
+          --stack-name msk-topic-manager \
+          --template-file infra/stack.yaml \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --parameter-overrides \
+            LambdaCodeS3Bucket=${{ secrets.ARTIFACTS_BUCKET }} \
+            LambdaCodeS3Key=lambda.zip \
+            TopicConfigBucket=${{ secrets.ARTIFACTS_BUCKET }} \
+            TopicConfigKey=topics.yaml \
+            BootstrapServers='${{ secrets.MSK_BOOTSTRAP_SERVERS }}' \
+            ClusterArn='${{ secrets.MSK_CLUSTER_ARN }}' \
+            SubnetIds='${{ secrets.SUBNET_IDS }}' \
+            SecurityGroupIds='${{ secrets.SECURITY_GROUP_IDS }}'
+
+    - name: Invoke Lambda to sync topics
+      run: |
+        L=$(aws cloudformation describe-stacks --stack-name msk-topic-manager --query "Stacks[0].Outputs[0].OutputValue" --output text)
+        aws lambda invoke --function-name $L out.json
+        cat out.json

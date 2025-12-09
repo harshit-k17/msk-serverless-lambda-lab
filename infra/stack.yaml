@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: MSK Topic Manager Automation
+
+Parameters:
+  LambdaCodeS3Bucket: { Type: String }
+  LambdaCodeS3Key: { Type: String }
+  TopicConfigBucket: { Type: String }
+  TopicConfigKey: { Type: String }
+  BootstrapServers: { Type: String }
+  ClusterArn: { Type: String }
+  SubnetIds: { Type: List<AWS::EC2::Subnet::Id> }
+  SecurityGroupIds: { Type: List<AWS::EC2::SecurityGroup::Id> }
+
+Resources:
+
+  TopicManagerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: msk-topic-manager-lambda-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: KafkaAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kafka-cluster:Connect
+                  - kafka-cluster:DescribeClusterV2
+                  - kafka-cluster:DescribeTopicV2
+                  - kafka-cluster:CreateTopicV2
+                  - kafka-cluster:AlterTopicV2
+                  - kafka-cluster:DeleteTopicV2
+                Resource: !Ref ClusterArn
+              - Effect: Allow
+                Action: [ "s3:GetObject" ]
+                Resource: !Sub "arn:aws:s3:::${TopicConfigBucket}/${TopicConfigKey}"
+
+  TopicManagerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: msk-topic-manager
+      Runtime: python3.11
+      Handler: topic_manager.handler
+      Role: !GetAtt TopicManagerRole.Arn
+      Timeout: 60
+      MemorySize: 256
+      Code:
+        S3Bucket: !Ref LambdaCodeS3Bucket
+        S3Key: !Ref LambdaCodeS3Key
+      VpcConfig:
+        SubnetIds: !Ref SubnetIds
+        SecurityGroupIds: !Ref SecurityGroupIds
+      Environment:
+        Variables:
+          TOPIC_CONFIG_BUCKET: !Ref TopicConfigBucket
+          TOPIC_CONFIG_KEY: !Ref TopicConfigKey
+          BOOTSTRAP_SERVERS: !Ref BootstrapServers
+
+Outputs:
+  LambdaArn:
+    Value: !GetAtt TopicManagerLambda.Arn

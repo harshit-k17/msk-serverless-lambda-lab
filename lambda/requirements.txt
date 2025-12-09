@@ -1,4 +1,3 @@
 boto3
 PyYAML
-aws-msk-iam-sasl-signer
 confluent-kafka

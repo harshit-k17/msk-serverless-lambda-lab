@@ -8,7 +8,7 @@ topics:
       cleanup.policy: compact
       min.insync.replicas: "2"
       retention.ms: "604800000"  # 7 days
-
+#hi
   - name: demo-payments
     partitions: 2
     replication_factor: 3
